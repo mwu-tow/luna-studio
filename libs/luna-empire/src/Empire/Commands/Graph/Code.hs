@@ -17,7 +17,7 @@ import qualified Luna.Syntax.Text.Lexer        as Lexer
 
 import Control.Monad.Catch                  (handle)
 import Data.Char                            (isDigit, isSpace)
-import Data.List                            (find, findIndices)
+import Data.List                            (find, findIndices, span)
 import Data.Text.Position                   (Delta (Delta))
 import Empire.ASTOp                         (runASTOp)
 import Empire.ASTOps.BreadcrumbHierarchy    (getMarker)
@@ -54,9 +54,19 @@ substituteCodeFromPoints path (breakDiffs -> diffs) = do
                 Just (char, _) -> if isSpace char
                     then Code.viewDeltasToRealBeforeMarker
                     else Code.viewDeltasToReal
+            minimizeDiff (beg, end, newCode) = (newBeg, end, minimalCode) where
+                iEnd = fromIntegral end
+                iBeg = fromIntegral beg
+                relevantCode = Text.take (iEnd - iBeg)
+                    $ Text.drop iBeg noMarkers
+                zipped = zip (Text.unpack relevantCode) (Text.unpack newCode)
+                (eqs, diff) = span (uncurry (==)) zipped
+                equalPrefixLengths = length eqs
+                newBeg = fromIntegral $ iBeg + equalPrefixLengths
+                minimalCode = Text.drop equalPrefixLengths newCode
             toRealDelta (a,b,c) = let (a', b') = (viewToReal c) oldCode (a,b)
                 in (a', b', c)
-        pure $ map (toRealDelta . toDelta) diffs
+        pure $ map (toRealDelta . minimizeDiff . toDelta) diffs
     substituteCode path changes
 
 -- | removeMarker removes marker at given position, assuming that marker
