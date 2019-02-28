@@ -168,6 +168,7 @@ installNodeModules = do
 
 
 -- === Installing Haskell === --
+
 stackSetupForLunaStudio :: (MonadIO m, MonadSh m, MonadShControl m) => m ()
 stackSetupForLunaStudio = do
     current <- currentPath
